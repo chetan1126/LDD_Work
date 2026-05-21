@@ -1,1 +1,0 @@
-cmd_/home/desd/chetan_kotrange/LDD_Work/class/2/char_intro.mod := { echo  /home/desd/chetan_kotrange/LDD_Work/class/2/char_intro.o;  echo; } > /home/desd/chetan_kotrange/LDD_Work/class/2/char_intro.mod
