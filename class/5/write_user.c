@@ -8,7 +8,7 @@ int main()
 {
 
 	int fd;
-	char buffer[100]= "Hello from the user space\n";
+	char buffer[100]= "Hello from the user space\0\n";
 
 	fd = open("/dev/write_fops", O_WRONLY);
 

@@ -7,12 +7,11 @@
 
 #define	DEVICE_NAME	"char_demo"
 #define	DEVICE_COUNT	1
-
-
+#define	buffer_size	100
 static dev_t dev_number;
 static struct cdev char_dev;
 
-static char kernel_buffer[100]; //= "Hello from the user space\n";
+static char kernel_buffer[buffer_size]; //= "Hello from the user space\n";
 
 static int my_open(struct inode *inode, struct file *file)
 {
@@ -57,28 +56,30 @@ static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count
 static ssize_t my_write(struct file *file, const char __user *user_buffer,size_t count, loff_t *offset)
 {
 	int bytes_to_write;
+	int ret;
 	pr_info("Write function called\n");
-	if(*offset > (size_t)*(kernel_buffer))
+	if(*offset > buffer_size)
 	{
 		pr_info("End of file space\n");
 		return -ENOSPC;
 	}
 	
-	bytes_to_write = min(count, ((size_t)*kernel_buffer - (size_t) *offset));
+	bytes_to_write = min(count, (size_t)((buffer_size-1) - *offset));
 	
-	int ret; 
-	ret = copy_from_user(kernel_buffer+*offset,user_buffer, bytes_to_write);
+	 
+	ret = copy_from_user(kernel_buffer+*offset, user_buffer, bytes_to_write);
 	
 	if(ret != 0)
 	{
-		pr_err("failed to copy data to user\n");
+		pr_err("failed to copy data from user\n");
 		return -EFAULT;
 	}
 	
 	*offset += bytes_to_write;
 	
 	kernel_buffer[*offset] = '\0';
-	pr_info("Sent %d bytes to the user\n", bytes_to_write);
+	pr_info("recived %d bytes from the user\n", bytes_to_write);
+	pr_info("recived string = %s\n", kernel_buffer);
 	return bytes_to_write;
 }
 
