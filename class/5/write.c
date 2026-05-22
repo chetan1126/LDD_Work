@@ -12,7 +12,7 @@
 static dev_t dev_number;
 static struct cdev char_dev;
 
-static char kernel_buffer[] = "Hello from Linux Kernel Driver\n";
+static char kernel_buffer[100]; //= "Hello from the user space\n";
 
 static int my_open(struct inode *inode, struct file *file)
 {
@@ -53,6 +53,33 @@ static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count
 	pr_info("Sent %d bytes to the user\n", bytes_to_read);
 	return bytes_to_read;
 	
+}
+static ssize_t my_write(struct file *file, const char __user *user_buffer,size_t count, loff_t *offset)
+{
+	int bytes_to_write;
+	pr_info("Write function called\n");
+	if(*offset > (size_t)*(kernel_buffer))
+	{
+		pr_info("End of file space\n");
+		return -ENOSPC;
+	}
+	
+	bytes_to_write = min(count, ((size_t)*kernel_buffer - (size_t) *offset));
+	
+	int ret; 
+	ret = copy_from_user(kernel_buffer+*offset,user_buffer, bytes_to_write);
+	
+	if(ret != 0)
+	{
+		pr_err("failed to copy data to user\n");
+		return -EFAULT;
+	}
+	
+	*offset += bytes_to_write;
+	
+	kernel_buffer[*offset] = '\0';
+	pr_info("Sent %d bytes to the user\n", bytes_to_write);
+	return bytes_to_write;
 }
 
 static const struct file_operations fops =
