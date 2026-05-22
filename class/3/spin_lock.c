@@ -24,6 +24,7 @@ static DECLARE_COMPLETION(done_thread2);
 
 static unsigned int loops = 1000000;		// this variabletell how many times each thread
 						//increment dhared counter
+						
 module_param(loops, unit,0444);	// this allow loops to pass through command line
 					//insmod 0444 means parameter is readable from sysfs
 					//but not writable after module loading
@@ -36,7 +37,34 @@ MODULE_PARM_DESC(use_lock, "Use spinlocks 1=yes, 0 = no");
 
 static int __init spin_demo_init(void)
 {
+	unsigned long expected; 	// stores expected value of shared counter
+	int cpu0,cpu1;			// variable number for cpu cores
 	
+	pr_info("spin_demo: modeule loaded\n");
+	shared_couner = 0;
+	spin_lock_init(&counter_lock);
+	
+	pr_info("spin_demo: Use_lock = %d \n",use_lock);
+	pr_info("spin_demo: loops per thread = %u\n",loops);
+	pr_info("spin-demo: onlinecpus = 5u\n", num_online_cpu()); 	//Number of CPUs available
+	
+	//Creates kernel thread, worker function, argument passed to worker function
+	// and name of kernel thread.
+	thread1 = kthread_create(worker_function,(void*)1, "spin_threads1");
+	if(IS_ERR(thread1))
+	{
+		pr_err("spin_demo: failed to create thread 1\n");
+		return PTR_ERR(thread1);
+	}
+	
+	thread2 = kthread_create(worker_function,(void*)2, "spin_threads1");
+	if(IS_ERR(thread2))
+	{
+		pr_err("spin_demo: failed to create thread 2\n");
+		return PTR_ERR(thread2);
+	}
+	 cpu0 = cpumask_first(cpu_onlinne_mask);
+	 
 }
 
 static void __exit spin_demo_exit(void)
