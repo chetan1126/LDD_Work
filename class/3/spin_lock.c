@@ -46,7 +46,7 @@ static int __init spin_demo_init(void)
 	
 	pr_info("spin_demo: Use_lock = %d \n",use_lock);
 	pr_info("spin_demo: loops per thread = %u\n",loops);
-	pr_info("spin-demo: onlinecpus = 5u\n", num_online_cpu()); 	//Number of CPUs available
+	pr_info("spin-demo: onlinecpus = %u\n", num_online_cpu()); 	//Number of CPUs available
 	
 	//Creates kernel thread, worker function, argument passed to worker function
 	// and name of kernel thread.
@@ -63,8 +63,49 @@ static int __init spin_demo_init(void)
 		pr_err("spin_demo: failed to create thread 2\n");
 		return PTR_ERR(thread2);
 	}
-	 cpu0 = cpumask_first(cpu_onlinne_mask);
+	 cpu0 = cpumask_first(cpu_onlinne_mask);	//cpu_online_mask contains all online CPUs
+	 						// return unsigned long
+	 cpu1 = cpumask_next(cpu0, cpu_online_mask);
+	 pr_info("CPU online mask = %d", cpu_online_mask->bits[0]);		// 
+	 if(cpu1 < nr_cpu_ids)
+	 {
+	 	kthread_bind(thread1, cpu0);
+	 	kthrad_bind(thread2, cpu1);
+	 	
+	 	pr_info("spin-demo: thread1 bound to CPU %d\n", cpu0);
+	 	pr_info("spin_demo: thread2 bound to CPU %d\n", cpu1);
+	 }
+	 else
+	 {
+	 	pr_warn("spin_demo: only one cou ionline. Race may not be visible.\n");
+	 	//Race around can still happen due to preemption.
+	 }
 	 
+	 wake_up_process(thread1);
+	 wake_up_process(thread2);	//kthread_creat() thtaed insleeping mode
+	 				//this function makes then runnable. Now execution jumps to
+	 				//wait_for completion(&start_signal);
+	 				//sleep for 100 miliseconds
+	 bsleep(100);
+	 
+	 pr_info("spin_demo: Starting both thread together\n");
+	 
+	 complete_all(&start_signal); 	// wake all thread waitinf on start signal. both threads
+	 					//start incrementing now
+	 
+	 wait_for_completion(&done_thread1);
+	 wait_for_completion(&done_thread2);
+	 
+	 expected = 2UL*loops;
+	 pr_info("spin_demo: Expected counter = %lU\n",expected);
+	 pr_info("spin_demo: Actual counter =%lu\n", shared_counter);
+	 
+	 if(shared_counter == expected)
+	 	pr_info("sppin_demo: RESULT: correct output\n");
+	 else
+	 	pr_info("spin_demo: RESULT: race around condition detected\n");
+	 
+	 return 0;
 }
 
 static void __exit spin_demo_exit(void)
