@@ -6,7 +6,7 @@
 #include <linux/completion.h> 	//for completion mechanism and thread synchroization
 #include <linux/delay.h>	//provide delay APIs like udelay and msleep
 #include <linux/smp.h>		//provide multicore helper  API
-#include <linux/modulepara.h> 	//Allows passing parameter when inserting modules
+#include <linux/moduleparam.h> 	//Allows passing parameter when inserting modules
 
 static unsigned long shared_counter;	//share variable
 
@@ -25,7 +25,7 @@ static DECLARE_COMPLETION(done_thread2);
 static unsigned int loops = 1000000;		// this variabletell how many times each thread
 						//increment dhared counter
 						
-module_param(loops, unit,0444);	// this allow loops to pass through command line
+module_param(loops, uint, 0444);	// this allow loops to pass through command line
 					//insmod 0444 means parameter is readable from sysfs
 					//but not writable after module loading
 				
@@ -35,18 +35,62 @@ static int use_lock =1;	//1= use spin lock, 0= don't use spin lock
 module_param(use_lock, int, 0444);
 MODULE_PARM_DESC(use_lock, "Use spinlocks 1=yes, 0 = no");
 
+static int worker_function(void* arg)
+{
+	//This function is implemented by both threads.
+	long id = (long) arg;	//thread eceives an argument
+	unsigned int i;
+	unsigned long temp;
+	
+	pr_info("spin_demo: thread %ld waiting ON CPU %d\n", id, smp_processor_id());
+	//Both threads  wait here. They will start together when module init calls complete_all().
+	//Without this function thread1 can strat before thread2 start.
+	//That will reduces chances of race around. This makes both threads start at same time
+	
+	wait_for_completion(&start_signal);
+	
+	pr_info("spin_demo: thread %ld started on CPU %d\n",id, smp_processor_id());
+	
+	for(i = 0; i < loops; i++)
+	{
+		if(use_lock)
+		{
+			spin_lock(&counter_lock);
+			++shared_counter;
+			spin_unlock(&counter_lock);
+		}
+		else
+		{
+			//Read this veriable directly from memory
+			temp = READ_ONCE(shared_counter);
+			if((i % 1000)== 0)
+			{
+				udelay(1);
+			}
+			++temp;
+			WRITE_ONCE(shared_counter,temp);
+		}
+	}
+	pr_info("spin_demo: Threads %ld finished on CPU %d\n",id , smp_processor_id());
+	if(id == 1)
+		complete(&done_thread1);
+	else
+		complete(&done_thread2);
+	return 0;
+}
+
 static int __init spin_demo_init(void)
 {
 	unsigned long expected; 	// stores expected value of shared counter
 	int cpu0,cpu1;			// variable number for cpu cores
 	
 	pr_info("spin_demo: modeule loaded\n");
-	shared_couner = 0;
+	shared_counter = 0;
 	spin_lock_init(&counter_lock);
 	
 	pr_info("spin_demo: Use_lock = %d \n",use_lock);
 	pr_info("spin_demo: loops per thread = %u\n",loops);
-	pr_info("spin-demo: onlinecpus = %u\n", num_online_cpu()); 	//Number of CPUs available
+	pr_info("spin-demo: onlinecpus = %u\n", num_online_cpus()); 	//Number of CPUs available
 	
 	//Creates kernel thread, worker function, argument passed to worker function
 	// and name of kernel thread.
@@ -63,14 +107,14 @@ static int __init spin_demo_init(void)
 		pr_err("spin_demo: failed to create thread 2\n");
 		return PTR_ERR(thread2);
 	}
-	 cpu0 = cpumask_first(cpu_onlinne_mask);	//cpu_online_mask contains all online CPUs
+	 cpu0 = cpumask_first(cpu_online_mask);	//cpu_online_mask contains all online CPUs
 	 						// return unsigned long
 	 cpu1 = cpumask_next(cpu0, cpu_online_mask);
-	 pr_info("CPU online mask = %d", cpu_online_mask->bits[0]);		// 
+	 //pr_info("CPU online mask = %d", cpu_online_mask->bits[0]);		// 
 	 if(cpu1 < nr_cpu_ids)
 	 {
 	 	kthread_bind(thread1, cpu0);
-	 	kthrad_bind(thread2, cpu1);
+	 	kthread_bind(thread2, cpu1);
 	 	
 	 	pr_info("spin-demo: thread1 bound to CPU %d\n", cpu0);
 	 	pr_info("spin_demo: thread2 bound to CPU %d\n", cpu1);
@@ -86,7 +130,7 @@ static int __init spin_demo_init(void)
 	 				//this function makes then runnable. Now execution jumps to
 	 				//wait_for completion(&start_signal);
 	 				//sleep for 100 miliseconds
-	 bsleep(100);
+	 msleep(100);
 	 
 	 pr_info("spin_demo: Starting both thread together\n");
 	 
@@ -97,7 +141,7 @@ static int __init spin_demo_init(void)
 	 wait_for_completion(&done_thread2);
 	 
 	 expected = 2UL*loops;
-	 pr_info("spin_demo: Expected counter = %lU\n",expected);
+	 pr_info("spin_demo: Expected counter = %lu\n",expected);
 	 pr_info("spin_demo: Actual counter =%lu\n", shared_counter);
 	 
 	 if(shared_counter == expected)
