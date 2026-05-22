@@ -1,1 +1,0 @@
-cmd_/home/desd/chetan_kotrange/LDD_Work/class/5/write.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/desd/chetan_kotrange/LDD_Work/class/5/write.ko /home/desd/chetan_kotrange/LDD_Work/class/5/write.o /home/desd/chetan_kotrange/LDD_Work/class/5/write.mod.o;  true
