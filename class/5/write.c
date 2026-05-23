@@ -40,7 +40,7 @@ static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count
 	
 	}
 	
-	bytes_to_read = min(count, strlen(kernel_buffer - (size_t) *offset));
+	bytes_to_read = min(count, (strlen(kernel_buffer) - (size_t) *offset));
 	
 	if(copy_to_user(user_buffer, kernel_buffer+*offset, bytes_to_read) != 0)
 	{
