@@ -1,4 +1,4 @@
-obj-m += lseek.o
+obj-m += ioctl.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)

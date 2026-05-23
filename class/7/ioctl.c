@@ -5,7 +5,7 @@
 #include <linux/cdev.h>
 #include <linux/kdev_t.h>
 #include <linux/uaccess.h>
-#include <ioctl.h>
+#include"ioctl.h"
 
 #define	DEVICE_NAME	"char_demo"
 #define	DEVICE_COUNT	1
@@ -26,43 +26,41 @@ static struct cdev char_dev;
 static long my_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int value;
-	pr_info("ioctl_fun: ioctl callled\n");
+	pr_info("ioctl_fun: ioctl called\n");
 	
-	switvjh(cmd)
+	switch(cmd)
 	{
-	case MY_IOCTL_RESET: 
-				device_value =0;
-				pr_info("ioctl_fun: device value reset to zero(0)\n");
-				brreak;
-	case MY_IOCTL_SET_VALUE:
-				if(copy_from_user(&value, (int __user*)arg, sizeof(value)))
-				{
-					pr_err("ioctl_fun: device_value sent to user: %d\n", value);
-					return _EFAULT;
-				}
-				device_value = value;
-				pr_info("ioctl_fun: device value set to %d\n", device_value);
-				break;
-	case MY_IOCTL_GET_VALUE:
-				value = device_value;
-				if(copy_to_user((int __user*)arg,value,sizeof(value)))
-				{
-					pr_err("ioctl_fun: failed to sent data to user\n");
-					return _EFAULT;
-				}
-				break;
-	case MY_IOCTL_TOGGLE_VALUE:
-					 device_value != device_value;
-					pr_info("ioctl_fun: device_value toggled to %d\n",device_value);
+		case MY_IOCTL_RESET: 
+					device_value =0;
+					pr_info("ioctl_fun:reset: device value reset to zero(0)\n value=%d\n",value);
 					break;
-	default:
-		pr_err("ioctl_fun: invalid ioctl command\n");
-		return -ETNVAL;
-		
-	
+		case MY_IOCTL_SET_VALUE:
+					if(copy_from_user(&value, (int __user*)arg, sizeof(value)))
+					{
+						pr_err("ioctl_fun:set: device_value sent to user: %d\n", value);
+						return -EFAULT;
+					}
+					device_value = value;
+					pr_info("ioctl_fun:set: device value set to %d\n", device_value);
+					break;
+		case MY_IOCTL_GET_VALUE:
+					value = device_value;
+					if(copy_to_user((int __user*)arg,&value,sizeof(value)))
+					{
+						pr_err("ioctl_fun:get value: failed to sent data to user\n");
+						return -EFAULT;
+					}
+					pr_err("ioctl_fun:get_value: call successful\nvalue=%d\n",value);
+					break;
+		case MY_IOCTL_TOGGLE_VALUE:
+						 device_value =! device_value;
+						pr_info("ioctl_fun:toggle_value: device_value toggled to %d\n",device_value);
+						break;
+		default:
+			pr_err("ioctl_fun: invalid ioctl command\n");
+			return -EINVAL;	
 	}
 	return 0;
-
 }
 
 static loff_t my_lseek(struct file *file_ptr, loff_t offset, int whence)
