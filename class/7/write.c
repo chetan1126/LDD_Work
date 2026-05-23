@@ -4,42 +4,14 @@
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/kdev_t.h>
-#include <linux/uaccess.h>
 
 #define	DEVICE_NAME	"char_demo"
 #define	DEVICE_COUNT	1
-//#define	buffer_size	1000
+#define	buffer_size	100
 static dev_t dev_number;
 static struct cdev char_dev;
 
-static char kernel_buffer[]= "Hello Everyone. My name is Chetan Kotrange. Welcome to Linux Device Driver CLass space\n";
-
-
-#define	buffer_size	(strlen(kernel_buffer))
-#define	DEVICE_SIZE	(sizeof(kernel_buffer)-1)
-
-static loff_t my_lseek(struct file *file_ptr, loff_t offset, int whence)
-{
-	loff_t new_pos;
-	
-	switch(whence)
-	{
-		case SEEK_SET: new_pos =  offset;
-			break;
-		case SEEK_CUR: new_pos = (file_ptr->f_pos) + offset;
-			break;
-		case SEEK_END: new_pos = DEVICE_SIZE + offset;
-			break;
-		default: return -EINVAL;
-	}
-
-	if(new_pos <0 || new_pos> DEVICE_SIZE) return -EINVAL;
-
-	file_ptr->f_pos = new_pos;
-	pr_info("lseek_char: new file position= %lld\n", new_pos);
-	return new_pos;
-
-}
+static char kernel_buffer[buffer_size]; //= "Hello from the user space\n";
 
 static int my_open(struct inode *inode, struct file *file)
 {
@@ -59,11 +31,11 @@ static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count
 {
 	int bytes_to_read;
 	
-	pr_info("Read_fun: Read function called\n");
+	pr_info("Read function called\n");
 	
 	if(*offset >= strlen(kernel_buffer))
 	{
-		pr_info("Read_fun: End of file reached\n");
+		pr_info("End of file reached\n");
 		return 0;
 	
 	}
@@ -72,12 +44,12 @@ static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count
 	
 	if(copy_to_user(user_buffer, kernel_buffer+*offset, bytes_to_read) != 0)
 	{
-		pr_err("Read_fun: failed to copy data to user\n");
+		pr_err("failed to copy data to user\n");
 		return -EFAULT;
 	}
 	
 	*offset = *offset + bytes_to_read;
-	pr_info("Read_fun: Sent %d bytes to the user\n", bytes_to_read);
+	pr_info("Sent %d bytes to the user\n", bytes_to_read);
 	return bytes_to_read;
 	
 }
@@ -85,10 +57,10 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,size_t
 {
 	int bytes_to_write;
 	int ret;
-	pr_info("Write_fun: Write function called\n");
+	pr_info("Write function called\n");
 	if(*offset > buffer_size)
 	{
-		pr_info("Write_fun: End of file space\n");
+		pr_info("End of file space\n");
 		return -ENOSPC;
 	}
 	
@@ -99,15 +71,15 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,size_t
 	
 	if(ret != 0)
 	{
-		pr_err("Write_fun: failed to copy data from user\n");
+		pr_err("failed to copy data from user\n");
 		return -EFAULT;
 	}
 	
 	*offset += bytes_to_write;
 	
 	kernel_buffer[*offset] = '\0';
-	pr_info("Write_fun: recived %d bytes from the user\n", bytes_to_write);
-	pr_info("Write_fun: recived string = %s\n", kernel_buffer);
+	pr_info("recived %d bytes from the user\n", bytes_to_write);
+	pr_info("recived string = %s\n", kernel_buffer);
 	return bytes_to_write;
 }
 
@@ -117,8 +89,7 @@ static const struct file_operations fops =
 	.open = my_open,
 	.release = my_release,
 	.read = my_read,
-	.write = my_write,
-	.llseek = my_lseek	
+	.write = my_write
 };
 
 static int __init my_init(void)

@@ -19,13 +19,6 @@ int main()
 
 	if(fd < 0)
 	{
-		perror("open");
-		return 1;
-	}
-	memset(buf, 0 , sizeof(buf));
-	ret = read(fd,buf, 20);
-	if(ret < 0)
-	{
 		perror("read");
 		close(fd);
 		return 1;
@@ -33,8 +26,8 @@ int main()
 //------------------------SEEK_CUR---------------------------------------------
 	//ret = read(fd,buf, sizeof(buf));
 	//ret = read(fd,buf, 0);
-	buf[ret] = '\0';
-	printf("Read 1: %s\n", buf);
+	//buf[ret] = '\0';
+	printf("Read 1: %s \n", buf);
 	pos = lseek(fd, 10, SEEK_CUR);
 
 	if(pos < 0)
