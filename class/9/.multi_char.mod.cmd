@@ -1,1 +1,0 @@
-cmd_/home/desd/chetan_kotrange/LDD_Work/class/9/multi_char.mod := { echo  /home/desd/chetan_kotrange/LDD_Work/class/9/multi_char.o;  echo; } > /home/desd/chetan_kotrange/LDD_Work/class/9/multi_char.mod
