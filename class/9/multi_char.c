@@ -361,7 +361,7 @@ module_init(multi_char_init);
 module_exit(multi_char_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Henil");
+MODULE_AUTHOR("chetan");
 MODULE_DESCRIPTION("Multiple character devices using one driver and multiple minors numbers\n");
 MODULE_VERSION("1.0");
 
