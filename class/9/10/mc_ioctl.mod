@@ -1,2 +1,0 @@
-/home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.o
-

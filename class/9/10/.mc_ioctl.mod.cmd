@@ -1,1 +1,0 @@
-cmd_/home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.mod := { echo  /home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.o;  echo; } > /home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.mod

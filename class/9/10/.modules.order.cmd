@@ -1,1 +1,0 @@
-cmd_/home/desd/chetan_kotrange/LDD_Work/class/9/10/modules.order := {   echo /home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.ko; :; } | awk '!x[$$0]++' - > /home/desd/chetan_kotrange/LDD_Work/class/9/10/modules.order
