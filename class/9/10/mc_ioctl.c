@@ -108,7 +108,7 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 	mutex_lock(&dev->lock);
 
 
-	if(dev->read_enable == 0)
+	if(dev->read_enable != 0)
 	{
 
 		mutex_unlock(&dev->lock);
@@ -240,7 +240,7 @@ static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 		case MY_IOCTL_ENABLE: 
 					dev->read_enable =1;
-					pr_err("ioctl_fun:  ioctl enable\n");
+					pr_err("ioctl_fun:  ioctl enable value= %d\n",dev->read_enable);
 					break;
 		case MY_IOCTL_SET_VALUE:
 					if(copy_from_user(&d_data,(void __user*)arg,sizeof(d_data)))
@@ -263,7 +263,7 @@ static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 					break;
 		case MY_IOCTL_DISABLE:
 					dev->read_enable =0;
-					pr_err("ioctl_fun:  ioctl Disable\n"); 
+					pr_err("ioctl_fun:  ioctl Disable value =%d\n",dev->read_enable); 
 						break;
 		default:
 			pr_err("ioctl_fun: invalid ioctl command\n");
@@ -340,6 +340,8 @@ static int __init multi_char_init(void)
 		// Store minor number inside device structure
 		devices[i].minor = i;
 
+		devices[i].read_enable = 1; // read enable to each driver
+		
 		// Initially no valid data present in the buffer
 		devices[i].data_size = 0;
 	
