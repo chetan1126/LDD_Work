@@ -1,4 +1,4 @@
-obj-m += multi_char.o
+obj-m += mc_ioctl.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)

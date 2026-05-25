@@ -1,5 +1,5 @@
 // 1. Code for Multiple character devices
-
+#include"ioctl.h" // my header
 #include<linux/module.h>
 #include<linux/kernel.h>
 #include<linux/init.h>
@@ -38,6 +38,9 @@ struct multi_char_dev{
 
 	//Minor number of this device
 	int minor;
+	
+	int read_enable;// for enable disable read function
+	
 
 };
 
@@ -49,17 +52,19 @@ struct class *multi_char_class;
 
 // Pointer to dynamically allocated array of device structures
 struct multi_char_dev *devices;
-//*******************************************DEVICE DATA*************************************************
+//**************************device data*************************************
 struct device_data{
-char data[100];
-};
+		int id;
+		char name[100];
+		float marks;
+}d_data;
 
 //**************************OPEN****************************************
 static int multi_char_open(struct inode *inode, struct file *file)
 {
 	//declare a pointer to our device specific structure
 	struct multi_char_dev *dev;
-
+	//*dev->read_enable =1; //enable read function
 	// Get the address of the parent structure from cdev pointer.
 	// inode->i_cdev points to the cdev of the opened device
 	// container_of() gives the full struct 'multi_char_dev' containing the cdev
@@ -98,9 +103,20 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 	size_t available;
 	ssize_t bytes_to_read;
 	size_t ret;
-
+	
+	
 	mutex_lock(&dev->lock);
 
+
+	if(dev->read_enable == 0)
+	{
+
+		mutex_unlock(&dev->lock);
+		pr_err("multi_char:read_fun:ioctl Disable\n");
+		return -EPERM; // read disable by ioctl exit the function read
+	}
+	
+	
 	if(*offset >= dev->data_size)
 	{
 		ret = 0;
@@ -133,11 +149,12 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 /**************************WRITE****************************************/
 static ssize_t multi_char_write(struct file *file, const char __user *user_buffer, size_t count, loff_t *offset)
 {
-	
-	struct multi_char_dev *dev = file->private_data;
 	size_t space_left;
 	size_t bytes_to_write;
 	size_t ret;
+	struct multi_char_dev *dev;
+	dev = file->private_data;
+	
 
 	mutex_lock(&dev->lock);
 
@@ -211,32 +228,42 @@ static loff_t multi_char_llseek(struct file *file, loff_t offset, int whence)
 //****************************************IOCTL***************************************************************************
 static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	int value;
+	//int value;
+	struct multi_char_dev *dev;
 	pr_info("ioctl_fun: ioctl called\n");
 	
-		struct multi_char_dev *dev = file->private_data;
-		
+	
+	dev = file->private_data;
+	
 	mutex_lock(&dev->lock);
 	switch(cmd)
 	{
 		case MY_IOCTL_ENABLE: 
+					dev->read_enable =1;
 					pr_err("ioctl_fun:  ioctl enable\n");
 					break;
 		case MY_IOCTL_SET_VALUE:
-					
+					if(copy_from_user(&d_data,(void __user*)arg,sizeof(d_data)))
+					{
+                                                pr_err("ioctl_fun:get value: failed to sent data to user\n");
+                                                return -EFAULT;
+                                        }
+                                        pr_err("Multi_char:ioctl_fun:ioctl structre data write\n");
+                                        pr_info("Multi_char:ioctl_fun:write_data-\nid=%d name=%s marks=\n", d_data.id, d_data.name);
 					break;
 		case MY_IOCTL_GET_VALUE:
-					value = device_value;
-                                        if(copy_to_user((int __user*)arg,,))
+
+                                       if(copy_to_user((void __user*)arg,&d_data, sizeof(d_data)))
                                         {
                                                 pr_err("ioctl_fun:get value: failed to sent data to user\n");
                                                 return -EFAULT;
                                         }
-                                        pr_err("ioctl_fun:get_value: call successful\ndata=%d\n",value);
+                                        pr_err("ioctl_fun:get_value: call successful\n");
 
 					break;
-		case MY_IOCTL_TOGGLE_VALUE:
-						 
+		case MY_IOCTL_DISABLE:
+					dev->read_enable =0;
+					pr_err("ioctl_fun:  ioctl Disable\n"); 
 						break;
 		default:
 			pr_err("ioctl_fun: invalid ioctl command\n");
@@ -399,7 +426,7 @@ module_init(multi_char_init);
 module_exit(multi_char_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Henil");
+MODULE_AUTHOR("chetan");
 MODULE_DESCRIPTION("Multiple character devices using one driver and multiple minors numbers\n");
 MODULE_VERSION("1.0");
 

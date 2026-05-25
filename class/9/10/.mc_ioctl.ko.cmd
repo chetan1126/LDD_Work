@@ -1,0 +1,1 @@
+cmd_/home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.ko /home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.o /home/desd/chetan_kotrange/LDD_Work/class/9/10/mc_ioctl.mod.o;  true
