@@ -22,8 +22,6 @@
 #define DEVICE_COUNT    4
 #define BUFFER_SIZE     1024
 
-//static char kernel_buffer[]= "Hello Everyone. My name is Chetan Kotrange. Welcome to Linux Device Driver CLass space\n";
-
 // Define a structure that represents one character device instance
 struct multi_char_dev{
 	// Character device object registered with VFS layer
@@ -51,6 +49,10 @@ struct class *multi_char_class;
 
 // Pointer to dynamically allocated array of device structures
 struct multi_char_dev *devices;
+//*******************************************DEVICE DATA*************************************************
+struct device_data{
+char data[100];
+};
 
 //**************************OPEN****************************************
 static int multi_char_open(struct inode *inode, struct file *file)
@@ -94,7 +96,7 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 	struct multi_char_dev *dev = file->private_data;
 
 	size_t available;
-	size_t bytes_to_read;
+	ssize_t bytes_to_read;
 	size_t ret;
 
 	mutex_lock(&dev->lock);
@@ -117,11 +119,11 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 		mutex_unlock(&dev->lock);
 		return ret;
 	}
-	pr_info("multi_char: Read Data = %.*s\n",(int)bytes_to_read,dev->buffer+ *offset);
+
 	*offset += bytes_to_read;
 
 	ret = bytes_to_read;
-	pr_info("multi_char:read: read %zu bytes from minor %d\n", bytes_to_read, dev->minor);
+	pr_info("multi_char: read %zu bytes from minor %d\n", bytes_to_read, dev->minor);
 	
 	mutex_unlock(&dev->lock);
 	return ret;
@@ -134,14 +136,22 @@ static ssize_t multi_char_write(struct file *file, const char __user *user_buffe
 	
 	struct multi_char_dev *dev = file->private_data;
 	size_t space_left;
-	ssize_t bytes_to_write;
+	size_t bytes_to_write;
 	size_t ret;
 
 	mutex_lock(&dev->lock);
+
+	if(*offset >= BUFFER_SIZE)
+	{
+		ret = -ENOSPC;
+		mutex_unlock(&dev->lock);
+		return ret;
+	}
+
 	space_left = BUFFER_SIZE - (size_t) (*offset);
 
 	bytes_to_write = min(count, space_left);
-	
+
 	if(copy_from_user(dev->buffer+*offset, user_buffer, bytes_to_write))
 	{
 		ret = -EFAULT;
@@ -150,19 +160,6 @@ static ssize_t multi_char_write(struct file *file, const char __user *user_buffe
 		return ret;
 	
 	}
-	if(*offset >= BUFFER_SIZE)
-	{
-		ret = -ENOSPC;
-		mutex_unlock(&dev->lock);
-		return ret;
-	}
-	pr_info("multi_char:write: Written Data = %s\n", dev->buffer);
-	*offset += bytes_to_write;
-
-	if(*offset > dev->data_size)
-		dev->data_size = *offset;
-
-	
 	
 	ret = bytes_to_write;
 	pr_info("multi_char: wrote %zu bytes to minor %d\n", bytes_to_write, dev->minor);
@@ -211,13 +208,54 @@ static loff_t multi_char_llseek(struct file *file, loff_t offset, int whence)
 	return new_pos;
 }
 
+//****************************************IOCTL***************************************************************************
+static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	int value;
+	pr_info("ioctl_fun: ioctl called\n");
+	
+		struct multi_char_dev *dev = file->private_data;
+		
+	mutex_lock(&dev->lock);
+	switch(cmd)
+	{
+		case MY_IOCTL_ENABLE: 
+					pr_err("ioctl_fun:  ioctl enable\n");
+					break;
+		case MY_IOCTL_SET_VALUE:
+					
+					break;
+		case MY_IOCTL_GET_VALUE:
+					value = device_value;
+                                        if(copy_to_user((int __user*)arg,,))
+                                        {
+                                                pr_err("ioctl_fun:get value: failed to sent data to user\n");
+                                                return -EFAULT;
+                                        }
+                                        pr_err("ioctl_fun:get_value: call successful\ndata=%d\n",value);
+
+					break;
+		case MY_IOCTL_TOGGLE_VALUE:
+						 
+						break;
+		default:
+			pr_err("ioctl_fun: invalid ioctl command\n");
+			return -EINVAL;	
+	}
+	mutex_unlock(&dev->lock);
+	return 0;
+}
+
+
+
 static const struct file_operations multi_char_fops = {
 	.owner = THIS_MODULE,
 	.open = multi_char_open,
 	.release = multi_char_release,
 	.read = multi_char_read,
 	.write = multi_char_write,
-	.llseek = multi_char_llseek
+	.llseek = multi_char_llseek,
+	.unlocked_ioctl = multi_ioctl
 };
 
 static int __init multi_char_init(void)
