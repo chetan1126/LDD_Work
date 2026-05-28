@@ -1,4 +1,4 @@
-obj-m += waitQueue.o
+obj-m += low_resolution_timer.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
