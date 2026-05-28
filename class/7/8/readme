@@ -1,0 +1,2 @@
+in this file we are reading value of structure this are located in kernel space 
+access can be done form user space 

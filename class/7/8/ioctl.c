@@ -67,8 +67,8 @@ static long my_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 						pr_info("ioctl_fun:toggle_value: device_value toggled to %d\n",device_value);
 						break;
 		case MY_IOCTL_GET_STRUCT:
-					value = my_st.data;
-					if(copy_to_user((int __user*)arg,(&value),sizeof(value)))
+					//value = my_st.data;
+					if(copy_to_user((void __user*)arg,&my_st, sizeof(my_st)))
 					{
 						pr_err("ioctl_fun:get_struct: failed to sent data to user\n");
 						return -EFAULT;
