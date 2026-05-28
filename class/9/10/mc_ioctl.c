@@ -249,7 +249,7 @@ static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                                                 return -EFAULT;
                                         }
                                         pr_err("Multi_char:ioctl_fun:ioctl structre data write\n");
-                                        pr_info("Multi_char:ioctl_fun:write_data-\nid=%d name=%s marks=\n", d_data.id, d_data.name);
+                                        printk(KERN_INFO "Multi_char:ioctl_fun:write_data-\nid=%d name=%s marks=%d\n",d_data.id, d_data.name, (float*)d_data.marks);
 					break;
 		case MY_IOCTL_GET_VALUE:
 
