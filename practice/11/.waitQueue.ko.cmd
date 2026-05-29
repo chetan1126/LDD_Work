@@ -1,0 +1,1 @@
+cmd_/home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.ko /home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.o /home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.mod.o;  true

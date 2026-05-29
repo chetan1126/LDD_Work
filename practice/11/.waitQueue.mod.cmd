@@ -1,0 +1,1 @@
+cmd_/home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.mod := { echo  /home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.o;  echo; } > /home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.mod
