@@ -61,7 +61,7 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 	data_available = 0;
 	*offset = *offset + bytes_to_read;
 	pr_info("wq_demo: sent %d bytes to user \n", bytes_to_read);
-	return bytes_to_read;
+	return bytes_to_recdev_del(&wq_cdev);ad;
 
 }
 
@@ -129,6 +129,9 @@ static int __init wq_driver_init(void)
 	ret = alloc_chrdev_region(&dev_number, 0, 1, DEVICE_NAME);	
 
 	if(ret < 0)
+
+
+
 	{
 		pr_err("wq_demo: failed to allocate device number\n");
 		return ret;

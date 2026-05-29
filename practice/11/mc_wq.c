@@ -11,6 +11,7 @@
 #include<linux/sched.h>		//Task states and scheduling
 #include<linux/slab.h>
 #include<linux/mutex.h>
+#include<linux/version.h>
 
 
 #define DEVICE_NAME	"multi_wq"
@@ -20,9 +21,9 @@
 
 
 static dev_t dev_number;
-static struct cdev wq_cdev;
+// static struct cdev wq_cdev;
 static struct class *wq_class;
-static char device_buffer[BUFFER_SIZE];
+// static char device_buffer[BUFFER_SIZE];
 // static int data_available = 0;	
 
 
@@ -30,11 +31,12 @@ static char device_buffer[BUFFER_SIZE];
 
 struct multi_char_dev {
 	struct cdev cdev;
-	char buffer[BUFFER_SIZE];
+	char device_buffer[BUFFER_SIZE];
 	size_t data_size;
+
 	struct mutex lock;	// Mutex lock for synchronizing access to this device
 	int minor;		// Minor number of this device
-	 DECLARE_WAIT_QUEUE_HEAD(wq);	// Creating 'Head' of wait queue
+	wait_queue_head_t wq;	//  <-- this is the type of wait queue head
 	int data_available;
 };
 
@@ -67,9 +69,9 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 	 * Once the process wakes up, data is available
 	 */
 
-	bytes_to_read = min(count, strlen(device_buffer) - (size_t)*offset);
+	bytes_to_read = min(count, strlen(dev->device_buffer) - (size_t)*offset);
 
-	if(copy_to_user(user_buffer, device_buffer+*offset, bytes_to_read))
+	if(copy_to_user(user_buffer, dev->device_buffer+*offset, bytes_to_read))
 	{
 		pr_err("multi_wq: failed to copy data to user\n");
 		return -EFAULT;
@@ -92,9 +94,9 @@ static ssize_t wq_write(struct file *file, const char __user *user_buffer, size_
 	pr_info("multi_wq: write() called");
 	bytes_to_write = min(count, (size_t)(BUFFER_SIZE-1)- *offset);
 
-	memset(device_buffer, 0, BUFFER_SIZE);
+	memset(dev->device_buffer, 0, BUFFER_SIZE);
 
-	if(copy_from_user(device_buffer+*offset, user_buffer, bytes_to_write))
+	if(copy_from_user(dev->device_buffer+*offset, user_buffer, bytes_to_write))
 	{
 		pr_err("multi_wq: failed to copy data from user\n");
 		return -EFAULT;	
@@ -102,12 +104,12 @@ static ssize_t wq_write(struct file *file, const char __user *user_buffer, size_
 
 	*offset = *offset + bytes_to_write;
 
-	device_buffer[*offset] = '\0';
+	dev->device_buffer[*offset] = '\0';
 
 	dev->data_available = 1;
 	//Wake up the process sleeping in read()
 	wake_up_interruptible(&dev->wq);
-	pr_info("multi_wq: received data %s\n", device_buffer);
+	pr_info("multi_wq: received data %s\n", dev->device_buffer);
 	pr_info("multi_wq: sleeping reader woken up\n");
 	return bytes_to_write;
 
@@ -178,11 +180,18 @@ dev_t dev_num;
 	// 	return ret;
 	// }
 
-	wq_class = class_create(THIS_MODULE, CLASS_NAME);
+	// Check if kernel version is 6.4.0 or newer
+	// Check if kernel version is 6.4.0 or newer
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+		wq_class = class_create(CLASS_NAME);
+	#else
+		wq_class = class_create(THIS_MODULE, CLASS_NAME);
+	
+	#endif
 	if(IS_ERR(wq_class))
 	{
 		pr_err("multi_wq: failed to create class\n");
-		cdev_del(&wq_cdev);
+		// cdev_del(&wq_cdev);
 		unregister_chrdev_region(dev_number, DEVICE_COUNT);
 		return PTR_ERR(wq_class);
 	
@@ -202,8 +211,11 @@ dev_t dev_num;
 			dev_num = MKDEV(MAJOR(dev_number), MINOR(dev_number)+i);
 			devices[i].minor = i;
 			devices[i].data_size = 0;
+			devices[i].data_available = 0;
 			mutex_init(&devices[i].lock);
 			cdev_init(&devices[i].cdev, &wq_fops);
+
+			init_waitqueue_head(&devices[i].wq);
 			devices[i].cdev.owner = THIS_MODULE;
 			ret = cdev_add(&devices[i].cdev, dev_num, 1);
 			if(ret<0)
@@ -237,7 +249,7 @@ dev_t dev_num;
 						cdev_del(&devices[i].cdev);
 				}
 				kfree(devices);	
-				return -1;
+				return -ERESTARTSYS;
 
 			}
 		pr_info("multi_wq: created /dev/multi_wq%d\n", i);

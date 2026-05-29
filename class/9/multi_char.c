@@ -144,7 +144,8 @@ static ssize_t multi_char_write(struct file *file, const char __user *user_buffe
 	{
 		ret = -ENOSPC;
 		mutex_unlock(&dev->lock);
-		return ret;
+		return ret;lsmod | grep multi
+cat /proc/devices | grep multi
 	}
 	pr_info("multi_char:write: Written Data = %s\n", dev->buffer);
 	*offset += bytes_to_write;
@@ -153,7 +154,7 @@ static ssize_t multi_char_write(struct file *file, const char __user *user_buffe
 		dev->data_size = *offset;
 
 	
-	
+	LINUX_VERSION_CODE
 	ret = bytes_to_write;
 	pr_info("multi_char: wrote %zu bytes to minor %d\n", bytes_to_write, dev->minor);
 
@@ -215,7 +216,8 @@ static int __init multi_char_init(void)
 	
 	int ret;
 	int i;
-	dev_t dev_num;	/* 32-bit unsigned int (12-bit: Major & 20 bits: Minor) */
+	dev_t dev_num;	/* 32-bit ulsmod | grep multi
+cat /proc/devices | grep multinsigned int (12-bit: Major & 20 bits: Minor) */
 	pr_info("multi_char: module init\n");
 
 	// Function for Dynamic allocation
