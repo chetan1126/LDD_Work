@@ -23,9 +23,20 @@ static dev_t dev_number;
 static struct cdev wq_cdev;
 static struct class *wq_class;
 static char device_buffer[BUFFER_SIZE];
-static int data_available = 0;	
+// static int data_available = 0;	
 
-static DECLARE_WAIT_QUEUE_HEAD(wq);	// Creating 'Head'
+
+
+
+struct multi_char_dev {
+	struct cdev cdev;
+	char buffer[BUFFER_SIZE];
+	size_t data_size;
+	struct mutex lock;	// Mutex lock for synchronizing access to this device
+	int minor;		// Minor number of this device
+	 DECLARE_WAIT_QUEUE_HEAD(wq);	// Creating 'Head' of wait queue
+	int data_available;
+};
 
 
 /********************************** READ *************************************/
@@ -46,7 +57,7 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 	 * 3. signal interrupts the sleep
 	 *
 	 **/
-	if(wait_event_interruptible(wq, data_available) != 0)
+	if(wait_event_interruptible(dev->wq, dev->data_available) != 0)
 	{
 		pr_info("multi_wq: read interrpted by signal\n");
 		return -1;
@@ -64,7 +75,7 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 		return -EFAULT;
 	}
 
-	data_available = 0;
+	dev->data_available = 0;
 	*offset = *offset + bytes_to_read;
 	pr_info("multi_wq: sent %d bytes to user \n", bytes_to_read);
 	return bytes_to_read;
@@ -93,9 +104,9 @@ static ssize_t wq_write(struct file *file, const char __user *user_buffer, size_
 
 	device_buffer[*offset] = '\0';
 
-	data_available = 1;
+	dev->data_available = 1;
 	//Wake up the process sleeping in read()
-	wake_up_interruptible(&wq);
+	wake_up_interruptible(&dev->wq);
 	pr_info("multi_wq: received data %s\n", device_buffer);
 	pr_info("multi_wq: sleeping reader woken up\n");
 	return bytes_to_write;
@@ -123,13 +134,6 @@ static int wq_release(struct inode *inode, struct file *file)
 	return 0;
 
 }
-struct multi_char_dev {
-	struct cdev cdev;
-	char buffer[BUFFER_SIZE];
-	size_t data_size;
-	struct mutex lock;	// Mutex lock for synchronizing access to this device
-	int minor;		// Minor number of this device
-};
 
 // Pointer to dynamically allocated array of device structures
 struct multi_char_dev *devices;
