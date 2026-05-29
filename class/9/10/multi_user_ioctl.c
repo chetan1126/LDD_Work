@@ -5,7 +5,7 @@
 
 #include"ioctl.h"
 
-#define DEVICE_FILE "/dev/multi_char0"
+#define DEVICE_FILE "/dev/multi_char3"
 
 struct user_data{
 	int id;

@@ -26,21 +26,11 @@
 
 // Define a structure that represents one character device instance
 struct multi_char_dev{
-	// Character device object registered with VFS layer
-	struct cdev cdev;
-
-	// Private kernel buffer for this particular device
-	char buffer[BUFFER_SIZE];
-
-	// Number of valid bytes currently stored in this device buffer
-	size_t data_size;
-
-	// Mutex lock
-	struct mutex lock;
-
-	//Minor number of this device
-	int minor;
-
+	struct cdev cdev;// Character device object registered with VFS layer
+	char buffer[BUFFER_SIZE];// Private kernel buffer for this particular device
+	size_t data_size;	// Number of valid bytes currently stored in this device buffer
+	struct mutex lock;// Mutex lock
+	int minor;	//Minor number of this device
 };
 
 // Stores first allocated device number. This also contains both major and minor number.

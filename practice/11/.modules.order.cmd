@@ -1,1 +1,0 @@
-cmd_/home/desd/chetan_kotrange/LDD_Work/practice/11/modules.order := {   echo /home/desd/chetan_kotrange/LDD_Work/practice/11/waitQueue.ko; :; } | awk '!x[$$0]++' - > /home/desd/chetan_kotrange/LDD_Work/practice/11/modules.order

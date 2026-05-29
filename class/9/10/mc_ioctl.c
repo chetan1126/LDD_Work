@@ -39,14 +39,14 @@ struct multi_char_dev{
 	//Minor number of this device
 	int minor;
 	
-	int read_enable;// for enable disable read function
+	//int read_enable;// for enable disable read function
 	
 
 };
 
 // Stores first allocated device number. This also contains both major and minor number.
 static dev_t base_dev;
-
+static int read_enable =1;
 // Pointer to device class used for automatic /dev node creation.
 struct class *multi_char_class;
 
@@ -94,8 +94,12 @@ static int multi_char_release(struct inode *inode, struct file *file)
 
 /**************************READ****************************************/
 
+
 static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size_t count, loff_t *offset)
 {
+	
+	//else if(read_enable ==1)
+	//{	
 	// Get device pointer from file->private_data.
 	// This tells us which minor device is being used.
 	struct multi_char_dev *dev = file->private_data;
@@ -104,19 +108,14 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 	ssize_t bytes_to_read;
 	size_t ret;
 	
-	
-	mutex_lock(&dev->lock);
-
-
-	if(dev->read_enable != 0)
+	if(read_enable == 0)
 	{
 
-		mutex_unlock(&dev->lock);
+		//mutex_unlock(&dev->lock);
 		pr_err("multi_char:read_fun:ioctl Disable\n");
 		return -EPERM; // read disable by ioctl exit the function read
 	}
-	
-	
+	mutex_lock(&dev->lock);
 	if(*offset >= dev->data_size)
 	{
 		ret = 0;
@@ -143,8 +142,10 @@ static ssize_t multi_char_read(struct file *file, char __user *user_buffer, size
 	
 	mutex_unlock(&dev->lock);
 	return ret;
-
+	//}
 }
+
+
 
 /**************************WRITE****************************************/
 static ssize_t multi_char_write(struct file *file, const char __user *user_buffer, size_t count, loff_t *offset)
@@ -226,6 +227,7 @@ static loff_t multi_char_llseek(struct file *file, loff_t offset, int whence)
 }
 
 //****************************************IOCTL***************************************************************************
+
 static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	//int value;
@@ -239,8 +241,8 @@ static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch(cmd)
 	{
 		case MY_IOCTL_ENABLE: 
-					dev->read_enable =1;
-					pr_err("ioctl_fun:  ioctl enable value= %d\n",dev->read_enable);
+					read_enable =1;
+					pr_err("ioctl_fun:  ioctl enable value= %d\n",read_enable);
 					break;
 		case MY_IOCTL_SET_VALUE:
 					if(copy_from_user(&d_data,(void __user*)arg,sizeof(d_data)))
@@ -248,8 +250,10 @@ static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                                                 pr_err("ioctl_fun:get value: failed to sent data to user\n");
                                                 return -EFAULT;
                                         }
+                                       // int whole = d_data.marks / 100;    
+					//int fraction = (d_data.marks*100);// % 100;
                                         pr_err("Multi_char:ioctl_fun:ioctl structre data write\n");
-                                        printk(KERN_INFO "Multi_char:ioctl_fun:write_data-\nid=%d name=%s marks=%d\n",d_data.id, d_data.name, (float*)d_data.marks);
+					  pr_info("Multi_char: ioctl_fun: write_data-\nid=%d name=%s marks=\n",d_data.id,d_data.name);//marks=%d.%02d\n
 					break;
 		case MY_IOCTL_GET_VALUE:
 
@@ -262,8 +266,9 @@ static long multi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 					break;
 		case MY_IOCTL_DISABLE:
-					dev->read_enable =0;
-					pr_err("ioctl_fun:  ioctl Disable value =%d\n",dev->read_enable); 
+					read_enable =0;
+					//return 0;
+					pr_err("ioctl_fun:ioctl Disable value =%d\n",read_enable); 
 						break;
 		default:
 			pr_err("ioctl_fun: invalid ioctl command\n");
@@ -340,7 +345,7 @@ static int __init multi_char_init(void)
 		// Store minor number inside device structure
 		devices[i].minor = i;
 
-		devices[i].read_enable = 1; // read enable to each driver
+		//devices[i].read_enable = 1; // read enable to each driver
 		
 		// Initially no valid data present in the buffer
 		devices[i].data_size = 0;
