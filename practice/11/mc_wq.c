@@ -13,7 +13,7 @@
 #include<linux/mutex.h>
 
 
-#define DEVICE_NAME	"wq_demo"
+#define DEVICE_NAME	"multi_wq"
 #define CLASS_NAME	"wq_class"
 #define BUFFER_SIZE	100
 #define DEVICE_COUNT    4
@@ -32,7 +32,8 @@ static DECLARE_WAIT_QUEUE_HEAD(wq);	// Creating 'Head'
 static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count, loff_t *offset)
 {
 	int bytes_to_read;
-
+	struct multi_char_dev *dev;
+	dev = file->private_data;
 	pr_info("multi_wq: read() called\n");
 
 
@@ -75,6 +76,8 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 static ssize_t wq_write(struct file *file, const char __user *user_buffer, size_t count, loff_t *offset)
 {
 	int bytes_to_write;
+	struct multi_char_dev *dev;
+	dev = file->private_data;
 	pr_info("multi_wq: write() called");
 	bytes_to_write = min(count, (size_t)(BUFFER_SIZE-1)- *offset);
 
@@ -101,6 +104,11 @@ static ssize_t wq_write(struct file *file, const char __user *user_buffer, size_
 
 static int wq_open(struct inode *inode, struct file *file)
 {
+	struct multi_char_dev *dev ;
+	dev = container_of(inode->i_cdev, struct multi_char_dev, cdev);
+
+	file->private_data = dev;
+
 	pr_info("multi_wq: open() called\n");
 	return 0;
 
@@ -108,6 +116,9 @@ static int wq_open(struct inode *inode, struct file *file)
 
 static int wq_release(struct inode *inode, struct file *file) 
 {
+	struct multi_char_dev *dev ;
+	dev = file->private_data;
+	
 	pr_info("multi_wq: release() called\n");
 	return 0;
 
@@ -120,6 +131,7 @@ struct multi_char_dev {
 	int minor;		// Minor number of this device
 };
 
+// Pointer to dynamically allocated array of device structures
 struct multi_char_dev *devices;
 
 
@@ -139,7 +151,7 @@ static int __init wq_driver_init(void)
 {
 	int ret,i;
 dev_t dev_num;
-dev_t base_dev;
+// dev_t base_dev;
 	pr_info("multi_wq: Module loaded\n");
 
 	ret = alloc_chrdev_region(&dev_number, 0, DEVICE_COUNT, DEVICE_NAME);	
@@ -167,23 +179,23 @@ dev_t base_dev;
 	{
 		pr_err("multi_wq: failed to create class\n");
 		cdev_del(&wq_cdev);
-		unregister_chrdev_region(dev_number, 1);
+		unregister_chrdev_region(dev_number, DEVICE_COUNT);
 		return PTR_ERR(wq_class);
 	
 	}
-
-	
 
 		devices = kcalloc(DEVICE_COUNT, sizeof(struct multi_char_dev), GFP_KERNEL);
 		if(!devices)
 		{
 			ret = -ENOMEM; // Error NO memory
 			class_destroy(wq_class);
+			unregister_chrdev_region(dev_number, DEVICE_COUNT);
+    		return ret;
 		}
 
 		for(i = 0; i < DEVICE_COUNT; ++i)
 		{
-			dev_num = MKDEV(MAJOR(base_dev), MINOR(base_dev)+i);
+			dev_num = MKDEV(MAJOR(dev_number), MINOR(dev_number)+i);
 			devices[i].minor = i;
 			devices[i].data_size = 0;
 			mutex_init(&devices[i].lock);
@@ -193,20 +205,21 @@ dev_t base_dev;
 			if(ret<0)
 			{
 				pr_err("multi_wq: cdev_add failed for minor %d\n", i);
-					while(--i >= 0)
+				while(--i >= 0)
 				{
-					dev_num = MKDEV(MAJOR(base_dev),MINOR(base_dev) +i);
+					dev_num = MKDEV(MAJOR(dev_number),MINOR(dev_number) +i);
 						device_destroy(wq_class, dev_num);
 						cdev_del(&devices[i].cdev);
 				}
 				kfree(devices);	
+				return ret;
 			}
 
 			if(IS_ERR(device_create(wq_class,
 				 NULL, 
-				 dev_number,
+				 dev_num,
 				  NULL, 
-				  "DEVICE_NAME%d",
+				  "multi_wq%d",
 				  i)))
 			{
 			pr_err("multi_wq: device create failed for minor %d\n", i);
@@ -215,7 +228,7 @@ dev_t base_dev;
 				// unregister_chrdev_region(dev_number, 1);
 				while(--i >= 0)
 				{
-					dev_num = MKDEV(MAJOR(base_dev),MINOR(base_dev) +i);
+					dev_num = MKDEV(MAJOR(dev_number),MINOR(dev_number) +i);
 						device_destroy(wq_class, dev_num);
 						cdev_del(&devices[i].cdev);
 				}
@@ -223,12 +236,9 @@ dev_t base_dev;
 				return -1;
 
 			}
-		pr_info("multi_wq: created /dev/multi_char%d\n", i);
+		pr_info("multi_wq: created /dev/multi_wq%d\n", i);
 
-
-
-
-		}
+		} // end of for loop
 
 
 
@@ -241,12 +251,20 @@ dev_t base_dev;
 
 static void __exit wq_driver_exit(void)
 {
-	device_destroy(wq_class, dev_number);
-	class_destroy(wq_class);
-	cdev_del(&wq_cdev);
-	unregister_chrdev_region(dev_number, 1);
-	pr_info("multi_wq: module unloaded\n");	
+	int i;
+	dev_t dev_num;
 
+	for (i = 0; i < DEVICE_COUNT; ++i) {
+		dev_num = MKDEV(MAJOR(dev_number), MINOR(dev_number) + i);
+		device_destroy(wq_class, dev_num);
+		cdev_del(&devices[i].cdev);
+		pr_info("multi_wq: removed /dev/multi_wq%d", i);
+
+	}
+	kfree(devices);
+	class_destroy(wq_class);
+	unregister_chrdev_region(dev_number, DEVICE_COUNT);
+	pr_info("multi_wq: module unloaded\n");
 }
 
 

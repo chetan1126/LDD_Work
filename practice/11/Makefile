@@ -1,4 +1,4 @@
-obj-m += waitQueue.o
+obj-m += mc_wq.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
