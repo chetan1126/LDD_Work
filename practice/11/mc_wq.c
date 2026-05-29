@@ -48,8 +48,6 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 	struct multi_char_dev *dev;
 	dev = file->private_data;
 	pr_info("multi_wq: read() called\n");
-
-
 	/* 
 	 * if data_available ==0, the proces sleeps here.
 	 * 
@@ -64,11 +62,9 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 		pr_info("multi_wq: read interrpted by signal\n");
 		return -1;
 	}
-
 	/*
 	 * Once the process wakes up, data is available
 	 */
-
 	bytes_to_read = min(count, strlen(dev->device_buffer) - (size_t)*offset);
 
 	if(copy_to_user(user_buffer, dev->device_buffer+*offset, bytes_to_read))
@@ -76,7 +72,6 @@ static ssize_t wq_read(struct file *file, char __user *user_buffer, size_t count
 		pr_err("multi_wq: failed to copy data to user\n");
 		return -EFAULT;
 	}
-
 	dev->data_available = 0;
 	*offset = *offset + bytes_to_read;
 	pr_info("multi_wq: sent %d bytes to user \n", bytes_to_read);
