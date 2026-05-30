@@ -1,0 +1,7 @@
+verify lseek 
+open  /dev/multi_charX
+write a string
+seek to a specific position 
+read data 
+close
+multi character device create succeessfully 

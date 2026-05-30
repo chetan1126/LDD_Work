@@ -1,0 +1,7 @@
+/* 
+Implement ioctl for multiple character device
+1. set a bit to enable read operation
+2. read a structure to user space min 3 element int char float
+3. update and write structure to kernel space 
+4. reset bit to disable reading
+*/
