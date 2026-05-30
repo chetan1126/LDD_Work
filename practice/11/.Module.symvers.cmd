@@ -1,0 +1,1 @@
+cmd_/home/desd/LDD_Work/practice/11/Module.symvers := sed 's/\.ko$$/\.o/' /home/desd/LDD_Work/practice/11/modules.order | scripts/mod/modpost -m -a  -o /home/desd/LDD_Work/practice/11/Module.symvers -e -i Module.symvers   -T -

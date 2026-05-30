@@ -1,0 +1,109 @@
+
+
+Method 2: Cross-Compilation (On a Linux Host PC)
+
+This is the preferred professional method. It assumes your host development PC is running Ubuntu/Debian.
+1. Install the Toolchain on your Host PC
+Bash
+
+sudo apt update
+sudo apt install build-essential gcc-arm-linux-gnueabihf git
+
+2. Get the BeagleBone Kernel Source
+
+You must compile against the exact kernel version running on your BBB. Check your BBB version with uname -r on the board. Assuming it is a standard 5.x or 4.x TI kernel:
+Bash
+
+git clone https://github.com/beagleboard/linux.git --depth=1 -b <your-bbb-kernel-branch>
+cd linux
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
+make bb.org_defconfig
+make modules_prepare
+
+3. Compile Your Driver on the Host PC
+
+Navigate to your driver source directory and create this Makefile:
+Makefile
+
+obj-m += platform_char.o
+# Path to the BBB kernel source tree you downloaded above
+KDIR ?= /path/to/cloned/linux 
+
+all:
+	$(MAKE) -C $(KDIR) M=$(PWD) ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules
+
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- clean
+
+Run make to build the platform_char.ko file, then copy it to your BeagleBone Black using scp:
+Bash
+
+scp platform_char.ko debian@beaglebone.local:/home/debian/
+
+Testing the Driver on the BeagleBone Black
+
+Once platform_char.ko is on your BeagleBone Black, run these commands to test it:
+1. Load the Module
+Bash
+
+sudo insmod platform_char.ko
+
+2. Verify Module Insertion and Kernel Logs
+
+Check dmesg to ensure the driver initialized, the platform device matched, and the character device was created successfully:
+Bash
+
+dmesg | tail -n 15
+
+You should see output similar to:
+
+    basic_pchar: module init
+
+    basic_pchar: allocated major=240 minor=0
+
+    basic_pchar: probe called
+
+    basic_pchar: created /dev/pchar0 with major=240 minor=0
+
+    basic_pchar: platform device registered
+
+Verify that the device node and sysfs class exist:
+Bash
+
+ls -l /dev/pchar0
+ls -d /sys/class/pchar_class/
+
+3. Test Read and Write Operations
+
+By default, the device permissions might restrict standard users. Give it global access or use sudo:
+Bash
+
+sudo chmod 666 /dev/pchar0
+
+Write data into the driver:
+Bash
+
+echo "Hello BeagleBone Black!" > /dev/pchar0
+
+Read data back out:
+Bash
+
+cat /dev/pchar0
+
+(It should print Hello BeagleBone Black!)
+
+Check dmesg again to watch your pchar_open, pchar_write, pchar_read, and pchar_release functions work in sequence:
+Bash
+
+dmesg | tail -n 10
+
+4. Unload the Module
+
+When you are done testing, clean up and remove the module:
+Bash
+
+sudo rmmod platform_char
+dmesg | tail -n 5
+
+(You will see the exit and remove logs indicating /dev/pchar0 has been safely destroyed).
