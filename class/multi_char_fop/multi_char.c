@@ -144,8 +144,7 @@ static ssize_t multi_char_write(struct file *file, const char __user *user_buffe
 	{
 		ret = -ENOSPC;
 		mutex_unlock(&dev->lock);
-		return ret;lsmod | grep multi
-cat /proc/devices | grep multi
+		return ret;
 	}
 	pr_info("multi_char:write: Written Data = %s\n", dev->buffer);
 	*offset += bytes_to_write;
@@ -153,9 +152,7 @@ cat /proc/devices | grep multi
 	if(*offset > dev->data_size)
 		dev->data_size = *offset;
 
-	
-	LINUX_VERSION_CODE
-	ret = bytes_to_write;
+		ret = bytes_to_write;
 	pr_info("multi_char: wrote %zu bytes to minor %d\n", bytes_to_write, dev->minor);
 
 	mutex_unlock(&dev->lock);
@@ -210,14 +207,13 @@ static const struct file_operations multi_char_fops = {
 	.write = multi_char_write,
 	.llseek = multi_char_llseek
 };
-
+//**************************MY MULTI CHAR INIT***********************************
 static int __init multi_char_init(void)
 {
 	
 	int ret;
 	int i;
-	dev_t dev_num;	/* 32-bit ulsmod | grep multi
-cat /proc/devices | grep multinsigned int (12-bit: Major & 20 bits: Minor) */
+	dev_t dev_num;	/* 32-bit unsigned int (12-bit: Major & 20 bits: Minor) */
 	pr_info("multi_char: module init\n");
 
 	// Function for Dynamic allocation
@@ -235,7 +231,6 @@ cat /proc/devices | grep multinsigned int (12-bit: Major & 20 bits: Minor) */
 		multi_char_class = class_create(CLASS_NAME);
 	#else
 		multi_char_class = class_create(THIS_MODULE, CLASS_NAME);
-	
 	#endif
 
 	//Check wheather class creation failed
@@ -279,7 +274,7 @@ cat /proc/devices | grep multinsigned int (12-bit: Major & 20 bits: Minor) */
 
 		ret = cdev_add(&devices[i].cdev, dev_num, 1);
 
-		// Check 
+		// Check if cdev_add() failed
 		if(ret<0)
 		{
 			pr_err("multi_char: cdev_add failed for minor %d\n", i);
@@ -321,7 +316,8 @@ unregister_region:
 	unregister_chrdev_region(base_dev, DEVICE_COUNT);
 	return ret;
 
-}
+}		// Check if cdev_add() failed
+
 
 static void __exit multi_char_exit(void)
 {

@@ -1,4 +1,4 @@
-obj-m += hello_1.o
+obj-m += mutex.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)

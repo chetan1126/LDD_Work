@@ -1,3 +1,4 @@
+// code for character device driver with open, release, read and write operations
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -8,11 +9,13 @@
 #define	DEVICE_NAME	"char_demo"
 #define	DEVICE_COUNT	1
 #define	buffer_size	100
+
 static dev_t dev_number;
 static struct cdev char_dev;
 
 static char kernel_buffer[buffer_size]; //= "Hello from the user space\n";
 
+//**************************OPEN****************************************
 static int my_open(struct inode *inode, struct file *file)
 {
 	pr_info("Character device demo\n");
@@ -21,12 +24,14 @@ static int my_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
+//**************************RELEASE****************************************
 static int my_release(struct inode *inode, struct file *file)
 {
 	pr_info("release file\n");
 	return 0;
 }
 
+//**************************READ****************************************
 static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count, loff_t *offset)
 {
 	int bytes_to_read;
@@ -53,6 +58,8 @@ static ssize_t my_read(struct file *file, char __user *user_buffer, size_t count
 	return bytes_to_read;
 	
 }
+
+//**************************WRITE****************************************
 static ssize_t my_write(struct file *file, const char __user *user_buffer,size_t count, loff_t *offset)
 {
 	int bytes_to_write;
@@ -83,6 +90,7 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,size_t
 	return bytes_to_write;
 }
 
+//**************************FILE_OPERATIONS****************************************
 static const struct file_operations fops =
 {	
 	.owner = THIS_MODULE,
@@ -92,6 +100,7 @@ static const struct file_operations fops =
 	.write = my_write
 };
 
+//**************************MY INIT***********************************
 static int __init my_init(void)
 {
 	int ret;
@@ -122,7 +131,7 @@ static int __init my_init(void)
 	return 0;
 }
 
-
+//**************************MY EXIT****************************************
 static void __exit my_exit(void)
 {
 	pr_info("char_demo: module unloading\n");
