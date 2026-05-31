@@ -4,3 +4,7 @@ ls /dev/pchar0                        # Verify device created
 echo "hello" | sudo tee /dev/pchar0   # Write to device
 sudo cat /dev/pchar0                  # Read back
 sudo rmmod platform_char              # Remove module
+
+
+
+scp platform_char.ko debian@beaglebone.local:/home/debian/ 

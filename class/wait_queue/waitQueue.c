@@ -193,6 +193,9 @@ module_init(wq_driver_init);
 module_exit(wq_driver_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Henil");
+MODULE_AUTHOR("chetan");
+
+
+
 
 
