@@ -1,0 +1,37 @@
+/dts-v1/;
+/plugin/;
+
+/{
+        compatible = "ti,beaglebone", "ti,beaglebone-back", "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
+        fragment@0{
+                target = <&am33xx_pinmux>;
+
+                __overlay__{ //Device tree overlay
+                        bbb_ext_led_pins:pinmux_bbb_ext_led_pins{
+                                pinctrl-single,pins = <
+                                        0x078 0x07
+
+                                >;
+
+                                };
+                        };
+                };
+
+        fragment@1 {
+                target-path = "\";
+
+                __overlay__ {
+                        bbb_ext_led {
+                                compatible = "chetan, bbb-ext-led";
+                                status = "okay";
+
+                                pinctrl-names = "default";
+                                pinctrl-0 <&bbb_ext_led_pins>;
+
+                                led-gpio = <&gpio1 28 0>;
+                                blink-period-ms = <500>;
+
+                                };
+                        };
+                };
+};
